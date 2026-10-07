@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vault Run 💰 — Play Money City</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     VAULT RUN
+     All game tuning: js/config.js
+     All scenes:      js/scenes/
+     Entity classes:  js/entities/
+     Styling:         css/style.css
+══════════════════════════════════════════════════════ -->
+
+<div id="game-wrapper">
+
+  <!-- Phaser canvas goes here -->
+  <div id="game-container"></div>
+
+  <!-- ── HUD (shown only during a live round) ── -->
+  <div id="hud" class="hidden">
+    <div id="hud-left">
+      <span id="hud-role">🏦 Banker</span>
+      <span id="hud-carry">Carrying: <b id="hud-carry-val">$0 VR</b></span>
+    </div>
+    <div id="hud-center">
+      <span id="hud-timer">⏱ <b id="hud-timer-val">3:00</b></span>
+    </div>
+    <div id="hud-right">
+      <span id="hud-balance">Balance: <b id="hud-balance-val">$0 VR</b></span>
+      <span id="hud-items"></span>
+    </div>
+  </div>
+
+  <!-- ── Toast notification area ── -->
+  <div id="toast-area"></div>
+
+  <!-- ── Mini-map ── -->
+  <canvas id="minimap" width="200" height="60"></canvas>
+
+  <!-- ══════════════════════════════════════════════
+       SCREENS (pure HTML — toggled by UI.show())
+  ══════════════════════════════════════════════ -->
+
+  <!-- MENU -->
+  <div id="screen-menu" class="screen">
+    <div class="vr-title">💰 VAULT RUN</div>
+    <div class="vr-subtitle">
+      Collect cash · Deposit at banks · Dodge cops &amp; thieves<br/>
+      Earn <b style="color:var(--gold)">$VR play money</b> to spend in the store!
+    </div>
+    <div class="btn-row">
+      <button class="vr-btn" onclick="UI.showLoadout()">▶ Solo Game</button>
+      <button class="vr-btn" style="background:var(--purple)" onclick="UI.showMultiplayer()">🌐 Multiplayer</button>
+      <button class="vr-btn secondary" onclick="UI.showStore()">🛒 Store (<span id="menu-balance">$0 VR</span>)</button>
+    </div>
+    <div class="fine-print">All currency is $VR play money. No real money involved.</div>
+  </div>
+
+  <!-- MULTIPLAYER CONNECT -->
+  <div id="screen-mp-connect" class="screen hidden">
+    <div class="vr-title" style="font-size:28px">🌐 Multiplayer</div>
+
+    <!-- Shown when Socket.io loaded successfully (game served via server.js) -->
+    <div id="mp-connected-panel" class="hidden" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%">
+      <div class="mp-status" id="mp-status">Connecting…</div>
+      <div class="vr-subtitle">Choose to host a new room or join a friend's room.</div>
+      <div class="btn-row">
+        <button class="vr-btn" onclick="UI.mpHost()">🏠 Host Room</button>
+        <button class="vr-btn secondary" onclick="UI.mpShowJoin()">🚪 Join Room</button>
+      </div>
+      <div id="mp-join-row" class="hidden mp-field-row">
+        <input id="mp-room-code" type="text" placeholder="Room code e.g. 4F2A1C"
+               class="vr-input" style="text-transform:uppercase;letter-spacing:4px;width:180px"/>
+        <button class="vr-btn" onclick="UI.mpJoin()">Join</button>
+      </div>
+    </div>
+
+    <!-- Shown when Socket.io is not available (opened as a plain file) -->
+    <div id="mp-noserver-panel" class="hidden" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%">
+      <div style="font-size:36px">⚠️</div>
+      <div class="vr-subtitle">
+        Can't find the multiplayer server.<br/><br/>
+        <b style="color:var(--gold)">Joining a friend?</b> Open the game from the host computer's address,
+        e.g. <b style="color:var(--gold)">http://10.0.0.16:3000</b>, not from a local copy.<br/><br/>
+        <b style="color:var(--gold)">Hosting?</b> In a terminal in the game folder, run
+        <code style="background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:6px">npm install</code> then
+        <code style="background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:6px">node server.js</code>
+      </div>
+    </div>
+
+    <button class="vr-btn secondary" onclick="UI.showMenu()">← Back</button>
+  </div>
+
+  <!-- MULTIPLAYER LOBBY -->
+  <div id="screen-mp-lobby" class="screen hidden">
+    <div class="vr-title" style="font-size:26px">🏠 Lobby</div>
+    <div class="mp-code-display">Room: <span id="lobby-code">——</span></div>
+    <div class="vr-subtitle">Share this code with friends. Choose your role, then start!</div>
+
+    <div class="role-cards" id="mp-role-cards"></div>
+
+    <div id="lobby-players" class="lobby-player-list"></div>
+
+    <div class="btn-row" style="margin-top:8px">
+      <button class="vr-btn" id="btn-mp-start" onclick="UI.mpStartRound()" style="display:none">
+        ▶ Start Round
+      </button>
+      <button class="vr-btn secondary" id="btn-mp-waiting" style="display:none">
+        ⏳ Waiting for host…
+      </button>
+      <button class="vr-btn secondary" onclick="UI.mpLeave()">Leave Room</button>
+    </div>
+  </div>
+
+  <!-- LOADOUT -->
+  <div id="screen-loadout" class="screen hidden">
+    <div class="vr-title" style="font-size:30px">Choose Your Role</div>
+    <div class="role-cards" id="role-cards">
+      <!-- filled by UI.showLoadout() -->
+    </div>
+    <div class="section-label">Difficulty</div>
+    <div class="diff-row" id="diff-row">
+      <!-- filled by UI.showLoadout() -->
+    </div>
+    <div class="btn-row">
+      <button class="vr-btn" onclick="UI.startGame()">🏃 Start Round</button>
+      <button class="vr-btn secondary" onclick="UI.showMenu()">← Back</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen hidden">
+    <div class="vr-title" style="font-size:34px">Round Over!</div>
+    <div id="result-role-emoji" style="font-size:36px"></div>
+    <div id="result-rows" style="width:100%;max-width:420px;"></div>
+    <div class="btn-row">
+      <button class="vr-btn" onclick="UI.showLoadout()">▶ Play Again</button>
+      <button class="vr-btn secondary" onclick="UI.showStore()">🛒 Store</button>
+      <button class="vr-btn secondary" onclick="UI.showMenu()">🏠 Menu</button>
+    </div>
+  </div>
+
+  <!-- STORE -->
+  <div id="screen-store" class="screen hidden">
+    <div class="vr-title" style="font-size:30px">🛒 Store</div>
+    <div class="store-balance">Balance: <span id="store-balance-val">$0 VR</span></div>
+    <div class="fine-print">Items are permanent. Purchased once, owned forever.</div>
+    <div class="store-grid" id="store-grid">
+      <!-- filled by UI.showStore() -->
+    </div>
+    <button class="vr-btn secondary" onclick="UI.showMenu()" style="margin-top:8px">← Back</button>
+  </div>
+
+</div><!-- /#game-wrapper -->
+
+<!-- ── Phaser 3 (CDN) ── -->
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+<!-- ── Game source (order matters) ── -->
+<script src="js/config.js"></script>
+
+<!-- ── Socket.io client ────────────────────────────────────────────────────────
+     Dev (localhost:3000): loads from the same server — path works fine.
+     Production: VR.MP_SERVER = 'https://eti.codes', so the script is loaded
+     from eti.codes instead (game files live on onlineplaymoneybank.com).
+     Uses wss:// automatically because the URL is https://.
+     Fails silently when running as a plain file (solo mode only).           ── -->
+<script>
+/* Tries each server in order; the first one that answers becomes MP_ORIGIN.
+   Without MP_SERVER set, it tries this page's own server, then port 3000 on
+   the same machine (so Live Server on :5500 or a double-clicked file still works). */
+window.MP_IO_READY = new Promise(function (resolve) {
+  var candidates;
+  if (VR.MP_SERVER)                    candidates = [VR.MP_SERVER];
+  else if (location.protocol === 'file:') candidates = ['http://localhost:3000'];
+  else candidates = [location.origin, location.protocol + '//' + location.hostname + ':3000'];
+
+  (function tryNext(i) {
+    if (i >= candidates.length) {
+      console.info('[MP] Socket.io not available — solo mode only');
+      return resolve(false);
+    }
+    var s = document.createElement('script');
+    s.src = candidates[i] + '/socket.io/socket.io.js';
+    s.onload  = function () { window.MP_ORIGIN = candidates[i]; resolve(true); };
+    s.onerror = function () { s.remove(); tryNext(i + 1); };
+    document.head.appendChild(s);
+  })(0);
+});
+</script>
+
+<script src="js/utils.js"></script>
+<script src="js/store.js"></script>
+<script src="js/multiplayer.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/scenes/BootScene.js"></script>
+<script src="js/scenes/GameScene.js"></script>
+<script src="js/entities/Player.js"></script>
+<script src="js/entities/Cop.js"></script>
+<script src="js/entities/CashPickup.js"></script>
+<script src="js/entities/Bank.js"></script>
+<script src="js/entities/CPU.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
