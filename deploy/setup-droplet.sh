@@ -8,6 +8,12 @@ DOMAIN=vault-run.onlineplaymoneybank.com
 REPO=https://github.com/Eti-C/vault-run.git
 APP_DIR=/opt/vault-run
 
+# Small droplets (512 MB) need swap headroom for apt and npm.
+if ! swapon --show | grep -q .; then
+  fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get install -yq ca-certificates curl git sudo nginx certbot python3-certbot-nginx ufw
