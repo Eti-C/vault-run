@@ -254,7 +254,7 @@ const VR = {
      Production (GitHub Pages / onlineplaymoneybank.com): the DigitalOcean
      server, over https/wss. See DEPLOY.md.                                    */
   MP_SERVER: /(^|\.)onlineplaymoneybank\.com$|\.github\.io$/.test(location.hostname)
-    ? 'https://vault-run.onlineplaymoneybank.com'
+    ? 'https://vault-run-realtime.onlineplaymoneybank.com'
     : null,
 
   /* ── Starting $VR balances for new players ── */

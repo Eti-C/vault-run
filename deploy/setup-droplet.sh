@@ -4,7 +4,7 @@
 # DNS for $DOMAIN must already point at the droplet (certbot checks it).
 set -euo pipefail
 
-DOMAIN=vault-run.onlineplaymoneybank.com
+DOMAIN=vault-run-realtime.onlineplaymoneybank.com
 REPO=https://github.com/Eti-C/vault-run.git
 APP_DIR=/opt/vault-run
 
@@ -40,10 +40,10 @@ systemctl enable --now vault-run
 systemctl restart vault-run
 
 # Only install the plain-HTTP site the first time; certbot edits it afterwards.
-if [ ! -e /etc/nginx/sites-available/vault-run ]; then
-  cp "$APP_DIR/deploy/nginx-vault-run.conf" /etc/nginx/sites-available/vault-run
+if [ ! -e /etc/nginx/sites-available/vault-run-realtime ]; then
+  cp "$APP_DIR/deploy/nginx-vault-run.conf" /etc/nginx/sites-available/vault-run-realtime
 fi
-ln -sf /etc/nginx/sites-available/vault-run /etc/nginx/sites-enabled/vault-run
+ln -sf /etc/nginx/sites-available/vault-run-realtime /etc/nginx/sites-enabled/vault-run-realtime
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
 systemctl reload nginx

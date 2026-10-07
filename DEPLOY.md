@@ -2,12 +2,12 @@
 
 | URL | What | Hosted on |
 |-----|------|-----------|
-| `https://play.onlineplaymoneybank.com` | The game (HTML/CSS/JS) | GitHub Pages, from this repo's `main` branch |
-| `https://vault-run.onlineplaymoneybank.com` | Multiplayer server (Socket.io over `wss://`) | DigitalOcean droplet: nginx → Node `server.js` |
+| `https://vault-run.onlineplaymoneybank.com` | The game (HTML/CSS/JS) | GitHub Pages, from this repo's `main` branch |
+| `https://vault-run-realtime.onlineplaymoneybank.com` | Multiplayer server (Socket.io over `wss://`) | DigitalOcean droplet: nginx → Node `server.js` |
 
 `js/config.js` picks the server automatically: pages served from
 `*.onlineplaymoneybank.com` or `*.github.io` connect to
-`https://vault-run.onlineplaymoneybank.com`; anything else (localhost, a LAN IP)
+`https://vault-run-realtime.onlineplaymoneybank.com`; anything else (localhost, a LAN IP)
 connects to the server that served the page, as before. An address typed into
 the Multiplayer screen overrides both.
 
@@ -18,10 +18,10 @@ for testing the server on its own.
 
 ## DNS (Namecheap → Domain List → onlineplaymoneybank.com → Advanced DNS)
 
-| Type | Host | Value |
-|------|------|-------|
-| A Record | `vault-run` | the droplet's IPv4 address |
-| CNAME Record | `play` | `eti-c.github.io.` |
+| Type | Host | Value | TTL |
+|------|------|-------|-----|
+| CNAME Record | `vault-run` | `eti-c.github.io.` | 5 min |
+| A Record | `vault-run-realtime` | the droplet's IPv4 (`104.248.71.180`) | 5 min |
 
 Leave the existing records for the root domain (the other GitHub Pages site) alone.
 
@@ -31,7 +31,7 @@ Leave the existing records for the root domain (the other GitHub Pages site) alo
 
 Repo → **Settings → Pages**:
 1. **Source:** Deploy from a branch → `main` / `/ (root)` → Save.
-2. **Custom domain:** `play.onlineplaymoneybank.com` (the `CNAME` file in the repo sets this too).
+2. **Custom domain:** `vault-run.onlineplaymoneybank.com` (the `CNAME` file in the repo sets this too).
 3. Once the certificate is issued (a few minutes after DNS resolves), tick **Enforce HTTPS**.
 
 Every push to `main` redeploys the game. The whole repo is published, so never
@@ -41,7 +41,7 @@ commit secrets — there are none today; the server needs no keys.
 
 ## Droplet (one time)
 
-Ubuntu droplet with your SSH key. After the `vault-run` A record resolves:
+Ubuntu droplet with your SSH key. After the `vault-run-realtime` A record resolves:
 
 ```bash
 ssh root@<droplet-ip> 'bash -s' < deploy/setup-droplet.sh
@@ -68,8 +68,8 @@ firewall (SSH + 80/443 only). Certificates auto-renew via certbot's timer.
 
 ## Verify
 
-1. `https://vault-run.onlineplaymoneybank.com/socket.io/socket.io.js` returns JavaScript.
-2. Open `https://play.onlineplaymoneybank.com` → 🌐 Multiplayer → "Connected to server ✅".
+1. `https://vault-run-realtime.onlineplaymoneybank.com/socket.io/socket.io.js` returns JavaScript.
+2. Open `https://vault-run.onlineplaymoneybank.com` → 🌐 Multiplayer → "Connected to server ✅".
 3. Host a room, join it from a second browser with the code, start a round.
 
 ## Troubleshooting
