@@ -180,7 +180,7 @@ const UI = (() => {
   /* Save a server address (blank = auto-detect) and reload to load Socket.io from it */
   function mpSetServer() {
     let addr = document.getElementById('mp-server-addr').value.trim().replace(/\/+$/, '');
-    if (addr && !/^https?:\/\//i.test(addr)) addr = 'http://' + addr;
+    if (addr && !/^https?:\/\//i.test(addr)) addr = (location.protocol === 'https:' ? 'https://' : 'http://') + addr;
     try {
       if (addr) localStorage.setItem('vr_mp_server', addr);
       else localStorage.removeItem('vr_mp_server');

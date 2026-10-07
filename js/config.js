@@ -251,8 +251,11 @@ const VR = {
        Nginx proxy (cleanest): null → proxy /socket.io/ in nginx config
   ── */
   /* Development (localhost): null  → auto-connects to window.location.origin
-     Production:              set to the multiplayer server's HTTPS origin     */
-  MP_SERVER: null,   // ← change to 'https://eti.codes' before deploying
+     Production (GitHub Pages / onlineplaymoneybank.com): the DigitalOcean
+     server, over https/wss. See DEPLOY.md.                                    */
+  MP_SERVER: /(^|\.)onlineplaymoneybank\.com$|\.github\.io$/.test(location.hostname)
+    ? 'https://vault-run.onlineplaymoneybank.com'
+    : null,
 
   /* ── Starting $VR balances for new players ── */
   STARTING_BALANCE: 0,

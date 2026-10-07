@@ -462,7 +462,8 @@ function _lobbyState(room) {
 /* ── Start (skipped when loaded by the tests, which pick their own port) ── */
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
+  const HOST = process.env.HOST;   // e.g. 127.0.0.1 behind nginx; unset = all interfaces
+  server.listen(PORT, HOST, () => {
     console.log(`\n🏦 Vault Run server running on http://localhost:${PORT}`);
     console.log(`   Single-player: open index.html directly (no server needed)`);
     console.log(`   Multiplayer:   players visit http://localhost:${PORT}\n`);

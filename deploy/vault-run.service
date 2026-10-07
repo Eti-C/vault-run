@@ -1,0 +1,22 @@
+# systemd unit for the Vault Run multiplayer server.
+# Installed to /etc/systemd/system/vault-run.service by setup-droplet.sh.
+[Unit]
+Description=Vault Run multiplayer server
+After=network.target
+
+[Service]
+User=vaultrun
+WorkingDirectory=/opt/vault-run
+ExecStart=/usr/bin/node server.js
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -173,20 +173,21 @@
 
 <!-- ── Socket.io client ────────────────────────────────────────────────────────
      Dev (localhost:3000): loads from the same server — path works fine.
-     Production: VR.MP_SERVER = 'https://eti.codes', so the script is loaded
-     from eti.codes instead (game files live on onlineplaymoneybank.com).
+     Production: VR.MP_SERVER = 'https://vault-run.onlineplaymoneybank.com', so
+     the script is loaded from there (game files live on GitHub Pages).
+     An address typed into the Multiplayer screen overrides both.
      Uses wss:// automatically because the URL is https://.
      Fails silently when running as a plain file (solo mode only).           ── -->
 <script>
 /* Tries each server in order; the first one that answers becomes MP_ORIGIN.
-   Without MP_SERVER set, it tries this page's own server, then port 3000 on
+   Without a saved address or MP_SERVER, it tries this page's own server, then port 3000 on
    the same machine (so Live Server on :5500 or a double-clicked file still works). */
 window.MP_IO_READY = new Promise(function (resolve) {
   var candidates;
   var saved = null;
   try { saved = localStorage.getItem('vr_mp_server'); } catch (e) {}
-  if (VR.MP_SERVER)                    candidates = [VR.MP_SERVER];
-  else if (saved)                      candidates = [saved];
+  if (saved)                           candidates = [saved];
+  else if (VR.MP_SERVER)               candidates = [VR.MP_SERVER];
   else if (location.protocol === 'file:') candidates = ['http://localhost:3000'];
   else candidates = [location.origin, location.protocol + '//' + location.hostname + ':3000'];
 
