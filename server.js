@@ -267,7 +267,9 @@ function endRound(room) {
    SOCKET EVENTS
 ═══════════════════════════════════════════════════════════════ */
 io.on('connection', socket => {
-  const from = (socket.handshake.address || '').replace(/^::ffff:/, '');
+  /* Behind nginx the socket address is 127.0.0.1; the real client is in X-Forwarded-For (logging only) */
+  const fwd  = String(socket.handshake.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const from = (fwd || socket.handshake.address || '').replace(/^::ffff:/, '');
   console.log(`[connect] ${socket.id} from ${from} (page: ${socket.handshake.headers.origin || 'none'})`);
 
   /* ── Create room ── */
