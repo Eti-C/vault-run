@@ -38,7 +38,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
    CONFIG (mirrors js/config.js values used server-side)
 ═══════════════════════════════════════════════════════════════ */
 const CFG = {
-  ROUND_TIME:     180,
+  ROUND_TIME:     Number(process.env.VR_ROUND_TIME) || 180,
   MAX_PLAYERS:    8,
   LATE_JOIN_SECS: 120,
   COP_COUNT:      5,
@@ -260,7 +260,7 @@ function endRound(room) {
   console.log(`[Room ${room.code}] Round ended. Results:`, results.map(r => `${r.playerId}:+${r.earned}`).join(', '));
 
   /* Clean up room after 30s */
-  setTimeout(() => rooms.delete(room.code), 30000);
+  setTimeout(() => rooms.delete(room.code), 30000).unref();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -272,6 +272,7 @@ io.on('connection', socket => {
   /* ── Create room ── */
   socket.on('room:create', ({ playerId, role, items, balance }, ack) => {
     if (Number.isFinite(balance)) playerBalances.set(playerId, Math.max(0, balance));
+    leaveRoom(socket);
     const room = createRoom(socket.id);
     const p = { id: playerId, role, items: items || [], x: CFG.WORLD_W/2, y: CFG.GROUND_Y, carry: 0, sessionEarnings: 0, nearCop: false };
     room.players.set(socket.id, p);
@@ -297,6 +298,7 @@ io.on('connection', socket => {
     }
 
     if (Number.isFinite(balance)) playerBalances.set(playerId, Math.max(0, balance));
+    if (roomOf(socket.id) !== room) leaveRoom(socket);
     const p = { id: playerId, role, items: items || [], x: CFG.WORLD_W/2, y: CFG.GROUND_Y, carry: 0, sessionEarnings: 0, nearCop: false };
     room.players.set(socket.id, p);
     socket.join(room.code);
@@ -413,24 +415,27 @@ io.on('connection', socket => {
     });
   });
 
-  /* ── Disconnect ── */
-  socket.on('disconnect', () => {
-    const room = roomOf(socket.id);
-    if (!room) return;
-    console.log(`[disconnect] ${socket.id} left room ${room.code}`);
-    room.players.delete(socket.id);
-    if (room.hostId === socket.id && room.players.size > 0) {
-      room.hostId = room.players.keys().next().value;
-      console.log(`[host] ${room.code} host passed to ${room.hostId}`);
-    }
-    socket.to(room.code).emit('player:left', { socketId: socket.id });
-    io.to(room.code).emit('lobby:update', _lobbyState(room));
-    if (room.players.size === 0) {
-      clearInterval(room.tickInterval);
-      rooms.delete(room.code);
-    }
-  });
+  socket.on('disconnect', () => leaveRoom(socket));
 });
+
+/* ── Remove a socket from whatever room it is in ── */
+function leaveRoom(socket) {
+  const room = roomOf(socket.id);
+  if (!room) return;
+  console.log(`[leave] ${socket.id} left room ${room.code}`);
+  room.players.delete(socket.id);
+  socket.leave(room.code);
+  if (room.hostId === socket.id && room.players.size > 0) {
+    room.hostId = room.players.keys().next().value;
+    console.log(`[host] ${room.code} host passed to ${room.hostId}`);
+  }
+  io.to(room.code).emit('player:left', { socketId: socket.id });
+  io.to(room.code).emit('lobby:update', _lobbyState(room));
+  if (room.players.size === 0) {
+    clearInterval(room.tickInterval);
+    rooms.delete(room.code);
+  }
+}
 
 /* ── Helper: lobby state snapshot ── */
 function _lobbyState(room) {
@@ -446,10 +451,14 @@ function _lobbyState(room) {
   };
 }
 
-/* ── Start ── */
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`\n🏦 Vault Run server running on http://localhost:${PORT}`);
-  console.log(`   Single-player: open index.html directly (no server needed)`);
-  console.log(`   Multiplayer:   players visit http://localhost:${PORT}\n`);
-});
+/* ── Start (skipped when loaded by the tests, which pick their own port) ── */
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`\n🏦 Vault Run server running on http://localhost:${PORT}`);
+    console.log(`   Single-player: open index.html directly (no server needed)`);
+    console.log(`   Multiplayer:   players visit http://localhost:${PORT}\n`);
+  });
+}
+
+module.exports = { server, io, rooms, playerBalances };
