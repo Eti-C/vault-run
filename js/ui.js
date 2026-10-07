@@ -156,6 +156,10 @@ const UI = (() => {
 
     connected.style.display = 'none';
     noserver.style.display  = 'none';
+    try {
+      document.getElementById('mp-server-addr').value =
+        (localStorage.getItem('vr_mp_server') || '').replace(/^https?:\/\//, '');
+    } catch (e) {}
 
     /* Wait for the Socket.io client to finish loading (see index.html) */
     window.MP_IO_READY.then(ok => {
@@ -172,6 +176,18 @@ const UI = (() => {
 
   /* mpConnect no longer needed — kept as a no-op for safety */
   function mpConnect() {}
+
+  /* Save a server address (blank = auto-detect) and reload to load Socket.io from it */
+  function mpSetServer() {
+    let addr = document.getElementById('mp-server-addr').value.trim().replace(/\/+$/, '');
+    if (addr && !/^https?:\/\//i.test(addr)) addr = 'http://' + addr;
+    try {
+      if (addr) localStorage.setItem('vr_mp_server', addr);
+      else localStorage.removeItem('vr_mp_server');
+    } catch (e) {}
+    sessionStorage.setItem('vr_open_mp', '1');
+    location.reload();
+  }
 
   function mpHost() {
     show('screen-mp-lobby');
@@ -274,7 +290,7 @@ const UI = (() => {
   /* ── Public surface ── */
   return {
     showMenu, showLoadout, showStore, showResult, startGame,
-    showMultiplayer, mpConnect, mpHost, mpShowJoin, mpJoin,
+    showMultiplayer, mpConnect, mpSetServer, mpHost, mpShowJoin, mpJoin,
     mpStartRound, mpLeave, updateLobby, startMpGame: _startMpGame,
     _selectRole, _selectDiff, _buyItem, _selectMpRole,
   };
@@ -282,4 +298,12 @@ const UI = (() => {
 })();
 
 /* Show menu on first load */
-document.addEventListener('DOMContentLoaded', () => UI.showMenu());
+document.addEventListener('DOMContentLoaded', () => {
+  /* After "Connect" reloads the page, go straight back to the Multiplayer screen */
+  if (sessionStorage.getItem('vr_open_mp')) {
+    sessionStorage.removeItem('vr_open_mp');
+    UI.showMultiplayer();
+  } else {
+    UI.showMenu();
+  }
+});

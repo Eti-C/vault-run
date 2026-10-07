@@ -85,12 +85,19 @@
       <div style="font-size:36px">⚠️</div>
       <div class="vr-subtitle">
         Can't find the multiplayer server.<br/><br/>
-        <b style="color:var(--gold)">Joining a friend?</b> Open the game from the host computer's address,
-        e.g. <b style="color:var(--gold)">http://10.0.0.16:3000</b>, not from a local copy.<br/><br/>
+        <b style="color:var(--gold)">Joining a friend?</b> Type the host computer's address below
+        (e.g. <b style="color:var(--gold)">10.0.0.16:3000</b>) and click Connect.<br/><br/>
         <b style="color:var(--gold)">Hosting?</b> In a terminal in the game folder, run
         <code style="background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:6px">npm install</code> then
         <code style="background:rgba(0,0,0,0.4);padding:4px 10px;border-radius:6px">node server.js</code>
       </div>
+    </div>
+
+    <!-- Server address — lets a local copy (e.g. Live Server :5500) reach the host -->
+    <div class="mp-field-row">
+      <label for="mp-server-addr">Server address</label>
+      <input id="mp-server-addr" type="text" class="vr-input" style="width:200px" placeholder="10.0.0.16:3000"/>
+      <button class="vr-btn secondary" style="min-width:0;padding:8px 16px" onclick="UI.mpSetServer()">Connect</button>
     </div>
 
     <button class="vr-btn secondary" onclick="UI.showMenu()">← Back</button>
@@ -176,7 +183,10 @@
    the same machine (so Live Server on :5500 or a double-clicked file still works). */
 window.MP_IO_READY = new Promise(function (resolve) {
   var candidates;
+  var saved = null;
+  try { saved = localStorage.getItem('vr_mp_server'); } catch (e) {}
   if (VR.MP_SERVER)                    candidates = [VR.MP_SERVER];
+  else if (saved)                      candidates = [saved];
   else if (location.protocol === 'file:') candidates = ['http://localhost:3000'];
   else candidates = [location.origin, location.protocol + '//' + location.hostname + ':3000'];
 

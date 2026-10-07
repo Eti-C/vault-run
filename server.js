@@ -267,7 +267,8 @@ function endRound(room) {
    SOCKET EVENTS
 ═══════════════════════════════════════════════════════════════ */
 io.on('connection', socket => {
-  console.log(`[connect] ${socket.id}`);
+  const from = (socket.handshake.address || '').replace(/^::ffff:/, '');
+  console.log(`[connect] ${socket.id} from ${from} (page: ${socket.handshake.headers.origin || 'none'})`);
 
   /* ── Create room ── */
   socket.on('room:create', ({ playerId, role, items, balance }, ack) => {
@@ -287,14 +288,18 @@ io.on('connection', socket => {
   /* ── Join room ── */
   socket.on('room:join', ({ code, playerId, role, items, balance }, ack) => {
     const room = rooms.get(String(code || '').toUpperCase());
-    if (!room) return ack({ ok: false, reason: 'Room not found' });
-    if (room.phase === 'ended') return ack({ ok: false, reason: 'Round already ended' });
-    if (room.players.size >= CFG.MAX_PLAYERS) return ack({ ok: false, reason: 'Room full' });
+    const refuse = reason => {
+      console.log(`[room:join] ${from} refused for "${code}": ${reason}`);
+      ack({ ok: false, reason });
+    };
+    if (!room) return refuse('Room not found');
+    if (room.phase === 'ended') return refuse('Round already ended');
+    if (room.players.size >= CFG.MAX_PLAYERS) return refuse('Room full');
 
     /* Late-join check */
     if (room.phase === 'running') {
       const sinceStart = (Date.now() - room.startedAt) / 1000;
-      if (sinceStart > CFG.LATE_JOIN_SECS) return ack({ ok: false, reason: 'Late-join window closed' });
+      if (sinceStart > CFG.LATE_JOIN_SECS) return refuse('Late-join window closed');
     }
 
     if (Number.isFinite(balance)) playerBalances.set(playerId, Math.max(0, balance));
@@ -303,7 +308,7 @@ io.on('connection', socket => {
     room.players.set(socket.id, p);
     socket.join(room.code);
 
-    console.log(`[room:join] ${code} by ${playerId}`);
+    console.log(`[room:join] ${room.code} by ${playerId} from ${from}`);
     ack({ ok: true, code: room.code, balance: loadBalance(playerId), phase: room.phase });
 
     socket.to(room.code).emit('player:joined', { socketId: socket.id, ...p });
@@ -415,7 +420,10 @@ io.on('connection', socket => {
     });
   });
 
-  socket.on('disconnect', () => leaveRoom(socket));
+  socket.on('disconnect', reason => {
+    console.log(`[disconnect] ${socket.id} from ${from}: ${reason}`);
+    leaveRoom(socket);
+  });
 });
 
 /* ── Remove a socket from whatever room it is in ── */

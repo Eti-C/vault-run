@@ -4,7 +4,6 @@
 class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
   create() {
-    /* Show the HTML menu after Phaser is ready */
-    UI.showMenu();
+    /* The first screen is chosen by ui.js on page load */
   }
 }
